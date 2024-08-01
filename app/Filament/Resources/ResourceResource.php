@@ -17,7 +17,9 @@ class ResourceResource extends Resource
 {
     protected static ?string $model = ResourceModel::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    protected static ?string $navigationGroup = 'Resource Management';
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
@@ -26,13 +28,36 @@ class ResourceResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\FileUpload::make('image')
-                    ->disk('public')->directory('resources')
-                    ->image()->imageEditor(),
                 Forms\Components\Textarea::make('description')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('location')
                     ->maxLength(255),
+                Forms\Components\Textarea::make('contact_info')
+                    ->columnSpanFull(),
+                Forms\Components\TextInput::make('is_active')
+                    ->required()
+                    ->numeric()
+                    ->default(1),
+                Forms\Components\TextInput::make('min_booking_duration')
+                    ->required()
+                    ->numeric(),
+                Forms\Components\TextInput::make('max_booking_duration')
+                    ->required()
+                    ->numeric()
+                    ->default(0),
+                Forms\Components\TextInput::make('unit_cost')
+                    ->required()
+                    ->numeric()
+                    ->minValue(0)
+                    ->default(0.00),
+                Forms\Components\TextInput::make('currency')
+                    ->required()
+                    ->maxLength(255)
+                    ->default('THB'),
+                Forms\Components\TextInput::make('max_participants')
+                    ->required()
+                    ->numeric()
+                    ->default(0),
                 Forms\Components\TextInput::make('min_notice_duration')
                     ->required()
                     ->numeric()
@@ -41,17 +66,15 @@ class ResourceResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(0),
-                Forms\Components\TextInput::make('min_booking_duration')
+                Forms\Components\Select::make('schedule_id')
+                    ->required()
+                    ->relationship('schedule', 'name'),
+                Forms\Components\TextInput::make('requires_approval')
                     ->required()
                     ->numeric()
                     ->default(0),
-                Forms\Components\TextInput::make('max_booking_duration')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
-                Forms\Components\TextInput::make('schedule_id')
-                    ->required()
-                    ->numeric(),
+                Forms\Components\Textarea::make('notes')
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -60,20 +83,13 @@ class ResourceResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->sortable()
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('image'),
                 Tables\Columns\TextColumn::make('description')
-                    ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('location')
-                    ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('min_notice_duration')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('max_notice_duration')
-                    ->numeric()
+                Tables\Columns\ToggleColumn::make('is_active')
+                    ->label('Active')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('min_booking_duration')
                     ->numeric()
@@ -81,8 +97,25 @@ class ResourceResource extends Resource
                 Tables\Columns\TextColumn::make('max_booking_duration')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('schedule_id')
+                Tables\Columns\TextColumn::make('unit_cost')
                     ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('currency')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('max_participants')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('min_notice_duration')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('max_notice_duration')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('schedule_id')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\ToggleColumn::make('requires_approval')
+                    ->label('Requires Approval')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -94,7 +127,15 @@ class ResourceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('schedule_id')
+                    ->relationship('schedule', 'name'),
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->options([
+                        0 => 'No', 
+                        1 => 'Yes',
+                    ])
+                    ->label('Active')
+                    ->preload(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
